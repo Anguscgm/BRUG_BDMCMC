@@ -21,23 +21,23 @@ chmod 777 ./BRUG_BDMCMC
 ```
 The meaning of the arguments are as follows:
 ```
--i
--b
--p
--L
--n
--B
--g
--t
--T
--K
--d
--D
--z
--o
--X
--e
--s
+-i  Integer, the total number of iterations desired.
+-b  Integer, the number of burn-in iterations desired.
+-p  Integer, the dimension of the covariance matrix.
+-L  Integer, the number of groups to be analyzed.
+-n  String, the path to the file of the sample sizes by group.
+-B  Integer, the initial value of b.
+-g  String, the path to the file of g prior.
+-t  String, the path to the file of T_s.
+-T  String, the path to the file of T_i.
+-K  String, the path to the file of initial K.
+-d  String, the path to the file of initial D_s.
+-D  String, the path to the file of initial D.
+-z  String, the path to the file of \beta_0.
+-o  String, the path to the file of \beta_1.
+-X  String, the path to the file of X, the age of each group.
+-e  Double, the value of the threshold.
+-s  Integer, the value of the seed.
 ```
 ## Reference
 Mohammadi R, Wit EC (2019). “BDgraph: An R Package for Bayesian Structure Learning in Graphical Models.” Journal of Statistical Software, 89(3), 1–30. doi: 10.18637/jss.v089.i03.
