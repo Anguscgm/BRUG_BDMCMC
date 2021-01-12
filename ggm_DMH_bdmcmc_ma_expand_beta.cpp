@@ -1,17 +1,16 @@
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
-//     Copyright (C) 2012 - 2020  Reza Mohammadi                                                   |
-//                                                                                                 |
-//     This file is part of BDgraph package.                                                       |
-//                                                                                                 |
-//     BDgraph is free software: you can redistribute it and/or modify it under                    |
-//     the terms of the GNU General Public License as published by the Free                        |
-//     Software Foundation; see <https://cran.r-project.org/web/licenses/GPL-3>.                   |
-//                                                                                                 |
-//     Maintainer: Reza Mohammadi <a.mohammadi@uva.nl>                                             |
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
-
 // Compile with:
-// g++ ggm_DMH_bdmcmc_ma_expand_beta.cpp -llapack -lblas -std=c++11 -o ggm_DMH_bdmcmc_ma_expand_beta
+// g++ ggm_DMH_bdmcmc_ma_expand_beta_record.cpp -llapack -lblas -std=c++11 -o ggm_DMH_bdmcmc_ma_expand_beta_record
+
+/***************************************************************************************
+*    Reference
+***************************************************************************************/
+/***************************************************************************************
+*    Title: BDgraph source code
+*    Author: Reza Mohammadi, Ernst C. Wit
+*    Date: 2012 - 2020
+*    Code version: 2.63
+*    Availability: https://github.com/cran/BDgraph
+***************************************************************************************/
 
 #include <iostream>
 #include <fstream>
@@ -21,6 +20,7 @@
 #include <random>
 #include <cmath>
 #include <cstring>
+#include <getopt.h>
 using namespace std;
 
 extern "C" void daxpy_(int* N, double* DA, double* DX, int* INCX, double* DY, int* INCY);
@@ -900,7 +900,8 @@ void select_edge( double rates[], int *index_selected_edge, double *sum_rates, i
 void ggm_DMH_bdmcmc_ma( int iteration, int burn_in, int G[], double g_prior[], double Ts[], double Ti[], 
                         double K[], int dim, double threshold, double K_hat[], double p_links[],
                         int b1, int ns[], double Ds[], double D[], int L, int print_c,
-                        double beta0[], double beta1[], double X[])
+                        double beta0[], double beta1[], double X[],
+                        double beta0_record[], double beta1_record[], int b_record[], double D_record[])
 {
     int index_selected_edge, selected_edge_l, selected_edge_i, selected_edge_j, selected_edge_ij;
     int ip, i, j, ij, pxp = dim * dim, Lxpxp = L * pxp, one = 1;
@@ -1041,6 +1042,13 @@ void ggm_DMH_bdmcmc_ma( int iteration, int burn_in, int G[], double g_prior[], d
         for (int l=0; l<L; l++)
             rgwish_sigma( &G[l*pxp], &size_node[l*dim], &Ts[l*pxp], &K[l*pxp], &sigma[l*pxp], b_star[l], dim, threshold, &sigma_start[l*pxp],
                           &inv_C[l*pxp], &beta_star[l*dim], &sigma_i[l*dim], &sigma_start_N_i[l*dim], &sigma_N_i[l*pxp], &N_i[l*dim] );
+        
+        
+        //record beta b and D for debugging
+        memcpy(&beta0_record[i_mcmc*dim*(dim-1)/2], beta0, dim*(dim-1)/2*sizeof(double));
+        memcpy(&beta1_record[i_mcmc*dim*(dim-1)/2], beta1, dim*(dim-1)/2*sizeof(double));
+        b_record[i_mcmc] = b1;
+        memcpy(&D_record[i_mcmc*pxp], D, pxp*sizeof(double));
     }  
     //PutRNGstate();
     
@@ -1142,7 +1150,7 @@ int main(int argc, char **argv)
     int burnin = 2500;
     int p = 8;
     double threshold = .00000001;
-    int b = 3;
+    int b = 7;
     int L = 10; // No. of groups
     unsigned int seed = 123;
     string g_prior_file_name = "final_data/BDgraph_sim_g_prior.txt";
@@ -1152,35 +1160,82 @@ int main(int argc, char **argv)
     string ns_file_name = "final_data/BDgraph_sim_ns.txt";
     string Ds_file_name = "final_data/BDgraph_sim_Ds.txt";
     string D_file_name = "final_data/BDgraph_sim_D.txt";
-    int print = iter/20;
     string beta0_file_name = "final_data/BDgraph_sim_beta0.txt";
     string beta1_file_name = "final_data/BDgraph_sim_beta1.txt";
     string X_file_name = "final_data/BDgraph_sim_X.txt";
     
-    // cout << argc << endl;
-    if (argc != 18 && argc != 1) {
-        printf("Please either use the default or enter all arguments.\n");
+    int opt;
+    
+    while ((opt = getopt (argc, argv, "i:b:p:L:n:B:g:t:T:K:d:D:z:o:X:e:s:")) != -1){
+        switch(opt){
+            case 'i':
+                iter = atoi(optarg);
+                break;
+            case 'b':
+                burnin = atoi(optarg);
+                break;
+            case 'p':
+                p = atoi(optarg);
+                break;
+            case 'L':
+                L = atoi(optarg);
+                break;
+            case 'n':
+                ns_file_name = optarg;
+                break;
+            case 'B':
+                b = atoi(optarg);
+                break;
+            case 'g':
+                g_prior_file_name = optarg;
+                break;
+            case 't':
+                Ts_file_name = optarg;
+                break;
+            case 'T':
+                Ti_file_name = optarg;
+                break;
+            case 'K':
+                K_file_name = optarg;
+                break;
+            case 'd':
+                Ds_file_name = optarg;
+                break;
+            case 'D':
+                D_file_name = optarg;
+                break;
+            case 'z':
+                beta0_file_name = optarg;
+                break;
+            case 'o':
+                beta1_file_name = optarg;
+                break;
+            case 'X':
+                X_file_name = optarg;
+                break;
+            case 'e':
+                threshold = atof(optarg);
+                break;
+            case 's':
+                seed = atoi(optarg);
+                break;
+            default:
+            cout << "Error Usage: "<< argv[0] << "[-i (i)terations] [-b (b)urnin] [-p dimension of Y] [-L no. of groups] "
+            << "[-n file of sample size of groups] [-B initial value of b] [-g file of initial g_prior] "
+            << "[-t file of initial Ts] [-T file of initial Ti] [-K file of initial K] [-d file of initial Ds] "
+            << "[-D file of initial D] [-z file of initial beta_(z)ero] [-o file of initial beta_(o)ne] "
+            << "[-X file of X] [-e threshold] [-s seed] \n";
+            exit(1);
+        }
     }
-    if (argc == 18) {
-        iter = atoi(argv[0]);
-        burnin = atoi(argv[1]);
-        g_prior_file_name = argv[2];
-        Ts_file_name = argv[3];
-        Ti_file_name = argv[4];
-        K_file_name = argv[5];
-        p = atoi(argv[6]);
-        threshold = atof(argv[7]);
-        b = atoi(argv[8]);
-        ns_file_name = argv[9];
-        Ds_file_name = argv[10];
-        D_file_name = argv[11];
-        print = atoi(argv[12]);
-        L = atoi(argv[13]);
-        seed = (unsigned int)atoi(argv[14]);
-        beta0_file_name = argv[15];
-        beta1_file_name = argv[16];
-        X_file_name = argv[17];
+    
+    //Run checking on user input.
+    if(burnin > iter){
+        printf("Burn-in iterations must be less than total number of iterations.\n");
+        return (-1);
     }
+    
+    int print = iter/20;
     
     // Further declare vairables
     vector<int> G(L*p*p); //L*p*p
@@ -1209,18 +1264,31 @@ int main(int argc, char **argv)
     read_file_double(&beta1, beta1_file_name);
     read_file_double(&X, X_file_name);
     
+    //for (int i=0; i<p*p; i++) cout << D[i] << endl;
     cout << "Files read." << endl;
     
     srand(seed);
     
+    //Record beta b and D
+    vector<double> beta0_record(iter*p*(p-1)/2);
+    vector<double> beta1_record(iter*p*(p-1)/2);
+    vector <int> b_record(iter);
+    vector<double> D_record(iter*p*p);
+    
     ggm_DMH_bdmcmc_ma(iter, burnin, &G[0], &g_prior[0], &Ts[0], &Ti[0], &K[0], p,
                         threshold, &K_hat[0], &p_links[0], b, &ns[0], &Ds[0],
-                        &D[0], L, print, &beta0[0], &beta1[0], &X[0]);
+                        &D[0], L, print, &beta0[0], &beta1[0], &X[0],
+                        &beta0_record[0], &beta1_record[0], &b_record[0], &D_record[0]);
     
     // Write files.
-    write_file_int(&G, "final_out/BDgraph_out_G",L,p,p);
-    write_file_double(&p_links, "final_out/BDgraph_out_p_links",L,p,p);
-    write_file_double(&K, "final_out/BDgraph_out_K",L,p,p);
-    write_file_double(&K_hat, "final_out/BDgraph_out_K_hat",L,p,p);
+    write_file_int(&G, "check_out/BDgraph_out_G",L,p,p);
+    write_file_double(&p_links, "check_out/BDgraph_out_p_links",L,p,p);
+    write_file_double(&K, "check_out/BDgraph_out_K",L,p,p);
+    write_file_double(&K_hat, "check_out/BDgraph_out_K_hat",L,p,p);
+    
+    write_file_double(&beta0_record, "check_out/check_beta0.txt", 1, iter, p*(p-1)/2);
+    write_file_double(&beta1_record, "check_out/check_beta1.txt", 1, iter, p*(p-1)/2);
+    write_file_int(&b_record, "check_out/check_b.txt", 1, iter, 1);
+    write_file_double(&D_record, "check_out/check_D.txt", 1, iter, p*p);
     
 }
