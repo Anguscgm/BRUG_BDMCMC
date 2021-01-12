@@ -1,15 +1,13 @@
 // Compile with:
-// g++ ggm_DMH_bdmcmc_ma_expand_beta_record.cpp -llapack -lblas -std=c++11 -o ggm_DMH_bdmcmc_ma_expand_beta_record
+// g++ BRUG_BDMCMC.cpp -llapack -lblas -std=c++11 -o BRUG_BDMCMC
 
-/***************************************************************************************
-*    Reference
-***************************************************************************************/
 /***************************************************************************************
 *    Title: BDgraph source code
 *    Author: Reza Mohammadi, Ernst C. Wit
 *    Date: 2012 - 2020
 *    Code version: 2.63
 *    Availability: https://github.com/cran/BDgraph
+*
 ***************************************************************************************/
 
 #include <iostream>
@@ -897,9 +895,9 @@ void select_edge( double rates[], int *index_selected_edge, double *sum_rates, i
 // Based on Double Metropolis-Hastings
 // it is for Bayesian model averaging
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
-void ggm_DMH_bdmcmc_ma( int iteration, int burn_in, int G[], double g_prior[], double Ts[], double Ti[], 
+void ggm_DMH_bdmcmc_ma( int iteration, int burn_in, int G[], double g_prior[],
                         double K[], int dim, double threshold, double K_hat[], double p_links[],
-                        int b1, int ns[], double Ds[], double D[], int L, int print_c,
+                        int b1, int ns[], double S[], double D[], int L, int print_c,
                         double beta0[], double beta1[], double X[],
                         double beta0_record[], double beta1_record[], int b_record[], double D_record[])
 {
@@ -925,7 +923,11 @@ void ggm_DMH_bdmcmc_ma( int iteration, int burn_in, int G[], double g_prior[], d
     // - - - - - - - - - - - - - - - - - - - - 
     vector<double> sigma_dmh( Lxpxp );          // for double Metropolis-Hastings
     vector<double> K_dmh( Lxpxp );              // for double Metropolis-Hastings
-
+    
+    vector<double> Ds(Lxpxp); //Newly introduced to update with every D.
+    vector<double> Ts(Lxpxp); //Newly introduced to update with every D.
+    vector<double> Ti(pxp); //Newly introduced to update with every D.
+    
     // Counting size of notes
     vector<int> size_node( L*dim, 0 );
     for( i = 0; i < L*dim; i++ )
@@ -970,6 +972,27 @@ void ggm_DMH_bdmcmc_ma( int iteration, int burn_in, int G[], double g_prior[], d
             ( print_conter != 20 ) ? printf( "%i%%->", print_conter * 5 ) : printf( " done\n" );
         }
         
+        //Update Ds after D is updated.
+        for (int l=0; l<L; l++)
+            for (int i=0; i<dim; i++)
+                for (int j=0; j<dim; j++)
+                {
+                    int pos = i*dim + j;
+                    Ds[l*pxp + pos] = D[pos] + S[l*pxp + pos];
+                }
+        // Subsequently update Ts.
+        char uplo = 'U';
+        int info;
+        for (int l=0; l<L; l++)
+        {
+            inverse(&Ds[l*pxp], &Ts[l*pxp], dim); //Cycle Ts to save memory.
+            dpotrf_( &uplo, &dim, &Ts[l*pxp], &dim, &info );
+        }
+        
+        //Update Ti
+        inverse(&D[0], &Ti[0], dim); //Cycle Ti to save memory.
+        dpotrf_( &uplo, &dim, &Ti[0], &dim, &info );
+        
         for (int l=0; l<L; l++)
         {
             counter = 0;
@@ -993,7 +1016,7 @@ void ggm_DMH_bdmcmc_ma( int iteration, int burn_in, int G[], double g_prior[], d
         }
         //cout << "Calculate rates." << endl;
         rates_bdmcmc_dmh_parallel( &rates[0], &log_ratio_g_prior[0], G, &index_row[0], &index_col[0],
-                                   &sub_qp, Ds, D, &sigma[0], K, &sigma_dmh[0], &K_dmh[0], L, dim );
+                                   &sub_qp, &Ds[0], D, &sigma[0], K, &sigma_dmh[0], &K_dmh[0], L, dim );
         
         // Selecting an edge based on birth and death rates
         //cout << "Select edge." << endl;
@@ -1154,11 +1177,9 @@ int main(int argc, char **argv)
     int L = 10; // No. of groups
     unsigned int seed = 123;
     string g_prior_file_name = "final_data/BDgraph_sim_g_prior.txt";
-    string Ts_file_name = "final_data/BDgraph_sim_Ts.txt";
-    string Ti_file_name = "final_data/BDgraph_sim_Ti.txt";
     string K_file_name = "final_data/BDgraph_sim_K.txt";
     string ns_file_name = "final_data/BDgraph_sim_ns.txt";
-    string Ds_file_name = "final_data/BDgraph_sim_Ds.txt";
+    string S_file_name = "final_data/BDgraph_sim_S.txt";
     string D_file_name = "final_data/BDgraph_sim_D.txt";
     string beta0_file_name = "final_data/BDgraph_sim_beta0.txt";
     string beta1_file_name = "final_data/BDgraph_sim_beta1.txt";
@@ -1166,7 +1187,7 @@ int main(int argc, char **argv)
     
     int opt;
     
-    while ((opt = getopt (argc, argv, "i:b:p:L:n:B:g:t:T:K:d:D:z:o:X:e:s:")) != -1){
+    while ((opt = getopt (argc, argv, "i:b:p:L:n:B:g:T:K:d:D:z:o:X:e:s:")) != -1){
         switch(opt){
             case 'i':
                 iter = atoi(optarg);
@@ -1189,17 +1210,11 @@ int main(int argc, char **argv)
             case 'g':
                 g_prior_file_name = optarg;
                 break;
-            case 't':
-                Ts_file_name = optarg;
-                break;
-            case 'T':
-                Ti_file_name = optarg;
-                break;
             case 'K':
                 K_file_name = optarg;
                 break;
-            case 'd':
-                Ds_file_name = optarg;
+            case 'S':
+                S_file_name = optarg;
                 break;
             case 'D':
                 D_file_name = optarg;
@@ -1222,7 +1237,7 @@ int main(int argc, char **argv)
             default:
             cout << "Error Usage: "<< argv[0] << "[-i (i)terations] [-b (b)urnin] [-p dimension of Y] [-L no. of groups] "
             << "[-n file of sample size of groups] [-B initial value of b] [-g file of initial g_prior] "
-            << "[-t file of initial Ts] [-T file of initial Ti] [-K file of initial K] [-d file of initial Ds] "
+            << "[-K file of initial K] [-S file of S] "
             << "[-D file of initial D] [-z file of initial beta_(z)ero] [-o file of initial beta_(o)ne] "
             << "[-X file of X] [-e threshold] [-s seed] \n";
             exit(1);
@@ -1240,13 +1255,11 @@ int main(int argc, char **argv)
     // Further declare vairables
     vector<int> G(L*p*p); //L*p*p
     vector<double> g_prior; //L*p*p
-    vector<double> Ts; //L*p*p
-    vector<double> Ti; //L*p*p
     vector<double> K; //L*p*p
     vector<double> K_hat(L*p*p); //L*p*p
     vector<double> p_links(L*p*p); //L*p*p
     vector<int> ns; //L
-    vector<double> Ds; //L*p*p
+    vector<double> S; //L*p*p
     vector<double> D; //p*p
     vector<double> beta0; // p*(p-1)/2
     vector<double> beta1; // p*(p-1)/2
@@ -1254,11 +1267,9 @@ int main(int argc, char **argv)
     
     // Read Files.
     read_file_double(&g_prior, g_prior_file_name);
-    read_file_double(&Ts, Ts_file_name);
-    read_file_double(&Ti, Ti_file_name);
     read_file_double(&K, K_file_name);
     read_file_int(&ns, ns_file_name);
-    read_file_double(&Ds, Ds_file_name);
+    read_file_double(&S, S_file_name);
     read_file_double(&D, D_file_name);
     read_file_double(&beta0, beta0_file_name);
     read_file_double(&beta1, beta1_file_name);
@@ -1275,8 +1286,8 @@ int main(int argc, char **argv)
     vector <int> b_record(iter);
     vector<double> D_record(iter*p*p);
     
-    ggm_DMH_bdmcmc_ma(iter, burnin, &G[0], &g_prior[0], &Ts[0], &Ti[0], &K[0], p,
-                        threshold, &K_hat[0], &p_links[0], b, &ns[0], &Ds[0],
+    ggm_DMH_bdmcmc_ma(iter, burnin, &G[0], &g_prior[0], &K[0], p,
+                        threshold, &K_hat[0], &p_links[0], b, &ns[0], &S[0],
                         &D[0], L, print, &beta0[0], &beta1[0], &X[0],
                         &beta0_record[0], &beta1_record[0], &b_record[0], &D_record[0]);
     
