@@ -16,8 +16,8 @@ Next, run the compiled code:
 # For some devices, it may be necessary to updatee permissions.
 chmod 777 ./BRUG_BDMCMC
 # Run the program
-./BRUG_BDMCMC -i 5000 -b 2500 -p 4 -L 3 -n demo_n.txt -B 7 -g demo_g_prior.txt -t demo_Ts.txt -T demo_Ti.txt -K demo_K.txt \
--d demo_Ds.txt -D demo_D.txt -z demo_beta0.txt -o demo_beta1.txt-X -e .00000001 -s 123
+./BRUG_BDMCMC -i 5000 -b 2500 -p 4 -L 3 -n demo_n.txt -B 7 -g demo_g_prior.txt -K demo_K.txt \
+-S demo_S.txt -D demo_D.txt -z demo_beta0.txt -o demo_beta1.txt-X -e .00000001 -s 123
 ```
 The meaning of the arguments are as follows:
 ```
@@ -28,10 +28,8 @@ The meaning of the arguments are as follows:
 -n  String, the path to the file of the sample sizes by group.
 -B  Integer, the initial value of b.
 -g  String, the path to the file of g prior.
--t  String, the path to the file of T_s.
--T  String, the path to the file of T_i.
 -K  String, the path to the file of initial K.
--d  String, the path to the file of initial D_s.
+-S  String, the path to the file of S.
 -D  String, the path to the file of initial D.
 -z  String, the path to the file of \beta_0.
 -o  String, the path to the file of \beta_1.
