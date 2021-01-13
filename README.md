@@ -5,7 +5,7 @@ To be updated and references will be added soon! Sorry for the inconvenience!
 ## Overview
 
 ## Installation
-BRUG_BDMCMC does not require any installation. It only requires the compiler g++ and the dependecy LAPACK for C to be available.
+BRUG_BDMCMC does not require any installation. It only requires the compiler g++ and the dependecies BLAS and LAPACK for C to be available.
 ## Demonstration
 First, compile the code:
 ```
