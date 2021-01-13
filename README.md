@@ -40,6 +40,7 @@ The meaning of the arguments are as follows:
 -X  String, the path to the file of X, the age of each group.
 -e  Double, the value of the threshold.
 -s  Integer, the value of the seed.
+-O  String, the path to output. Please end it with a slash ("/").
 ```
 ## Demonstration
 Please see the ./demo folder for the demo data
