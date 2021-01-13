@@ -42,7 +42,10 @@ The meaning of the arguments are as follows:
 -s  Integer, the value of the seed.
 -O  String, the path to output. Please end it with a slash ("/").
 ```
+Please note that files can be tab or space separated, but NOT comma.
 ## Demonstration
 Please see the ./demo folder for the demo data
+## Inquiry
+Please kindly email chan.ga.ming.angus@gmail.com for any inquiry or bug report, thank you!
 ## Reference
 Mohammadi R, Wit EC (2019). “BDgraph: An R Package for Bayesian Structure Learning in Graphical Models.” Journal of Statistical Software, 89(3), 1–30. doi: 10.18637/jss.v089.i03.
