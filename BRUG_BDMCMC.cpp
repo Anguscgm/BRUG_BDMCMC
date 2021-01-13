@@ -1,7 +1,15 @@
+/***************************************************************************************
+*     Copyright (C) 2020 Chan Ga Ming Angus
+*
+*     Maintainer: Chan Ga Ming Angus <chan.ga.ming.angus@gmail.com>
+***************************************************************************************/
+
 // Compile with:
 // g++ BRUG_BDMCMC.cpp -llapack -lblas -std=c++11 -o BRUG_BDMCMC
 
 /***************************************************************************************
+*    Reference
+****************************************************************************************
 *    Title: BDgraph source code
 *    Author: Reza Mohammadi, Ernst C. Wit
 *    Date: 2012 - 2020
@@ -898,8 +906,7 @@ void select_edge( double rates[], int *index_selected_edge, double *sum_rates, i
 void ggm_DMH_bdmcmc_ma( int iteration, int burn_in, int G[], double g_prior[],
                         double K[], int dim, double threshold, double K_hat[], double p_links[],
                         int b1, int ns[], double S[], double D[], int L, int print_c,
-                        double beta0[], double beta1[], double X[],
-                        double beta0_record[], double beta1_record[], int b_record[], double D_record[])
+                        double beta0[], double beta1[], double X[])
 {
     int index_selected_edge, selected_edge_l, selected_edge_i, selected_edge_j, selected_edge_ij;
     int ip, i, j, ij, pxp = dim * dim, Lxpxp = L * pxp, one = 1;
@@ -1066,12 +1073,6 @@ void ggm_DMH_bdmcmc_ma( int iteration, int burn_in, int G[], double g_prior[],
             rgwish_sigma( &G[l*pxp], &size_node[l*dim], &Ts[l*pxp], &K[l*pxp], &sigma[l*pxp], b_star[l], dim, threshold, &sigma_start[l*pxp],
                           &inv_C[l*pxp], &beta_star[l*dim], &sigma_i[l*dim], &sigma_start_N_i[l*dim], &sigma_N_i[l*pxp], &N_i[l*dim] );
         
-        
-        //record beta b and D for debugging
-        memcpy(&beta0_record[i_mcmc*dim*(dim-1)/2], beta0, dim*(dim-1)/2*sizeof(double));
-        memcpy(&beta1_record[i_mcmc*dim*(dim-1)/2], beta1, dim*(dim-1)/2*sizeof(double));
-        b_record[i_mcmc] = b1;
-        memcpy(&D_record[i_mcmc*pxp], D, pxp*sizeof(double));
     }  
     //PutRNGstate();
     
@@ -1171,23 +1172,24 @@ int main(int argc, char **argv)
     // 0. Read in arguments to function
     int iter = 5000;
     int burnin = 2500;
-    int p = 8;
+    int p = 5;
     double threshold = .00000001;
     int b = 7;
-    int L = 10; // No. of groups
+    int L = 4; // No. of groups
     unsigned int seed = 123;
-    string g_prior_file_name = "final_data/BDgraph_sim_g_prior.txt";
-    string K_file_name = "final_data/BDgraph_sim_K.txt";
-    string ns_file_name = "final_data/BDgraph_sim_ns.txt";
-    string S_file_name = "final_data/BDgraph_sim_S.txt";
-    string D_file_name = "final_data/BDgraph_sim_D.txt";
-    string beta0_file_name = "final_data/BDgraph_sim_beta0.txt";
-    string beta1_file_name = "final_data/BDgraph_sim_beta1.txt";
-    string X_file_name = "final_data/BDgraph_sim_X.txt";
+    string g_prior_file_name = "demo_data/demo_g_prior.txt";
+    string K_file_name = "demo_data/demo_K.txt";
+    string ns_file_name = "demo_data/demo_n.txt";
+    string S_file_name = "demo_data/demo_S.txt";
+    string D_file_name = "demo_data/demo_D.txt";
+    string beta0_file_name = "demo_data/demo_beta0.txt";
+    string beta1_file_name = "demo_data/demo_beta1.txt";
+    string X_file_name = "demo_data/demo_X.txt";
+    string out_dir = "demo_out/";
     
     int opt;
     
-    while ((opt = getopt (argc, argv, "i:b:p:L:n:B:g:T:K:d:D:z:o:X:e:s:")) != -1){
+    while ((opt = getopt (argc, argv, "i:b:p:L:n:B:g:K:S:D:z:o:X:e:s:O:")) != -1){
         switch(opt){
             case 'i':
                 iter = atoi(optarg);
@@ -1234,12 +1236,15 @@ int main(int argc, char **argv)
             case 's':
                 seed = atoi(optarg);
                 break;
+            case 'O':
+                out_dir = optarg;
+                break;
             default:
             cout << "Error Usage: "<< argv[0] << "[-i (i)terations] [-b (b)urnin] [-p dimension of Y] [-L no. of groups] "
             << "[-n file of sample size of groups] [-B initial value of b] [-g file of initial g_prior] "
             << "[-K file of initial K] [-S file of S] "
             << "[-D file of initial D] [-z file of initial beta_(z)ero] [-o file of initial beta_(o)ne] "
-            << "[-X file of X] [-e threshold] [-s seed] \n";
+            << "[-X file of X] [-e threshold] [-s seed] [-O output directory]\n";
             exit(1);
         }
     }
@@ -1280,26 +1285,14 @@ int main(int argc, char **argv)
     
     srand(seed);
     
-    //Record beta b and D
-    vector<double> beta0_record(iter*p*(p-1)/2);
-    vector<double> beta1_record(iter*p*(p-1)/2);
-    vector <int> b_record(iter);
-    vector<double> D_record(iter*p*p);
-    
     ggm_DMH_bdmcmc_ma(iter, burnin, &G[0], &g_prior[0], &K[0], p,
                         threshold, &K_hat[0], &p_links[0], b, &ns[0], &S[0],
-                        &D[0], L, print, &beta0[0], &beta1[0], &X[0],
-                        &beta0_record[0], &beta1_record[0], &b_record[0], &D_record[0]);
+                        &D[0], L, print, &beta0[0], &beta1[0], &X[0]);
     
     // Write files.
-    write_file_int(&G, "check_out/BDgraph_out_G",L,p,p);
-    write_file_double(&p_links, "check_out/BDgraph_out_p_links",L,p,p);
-    write_file_double(&K, "check_out/BDgraph_out_K",L,p,p);
-    write_file_double(&K_hat, "check_out/BDgraph_out_K_hat",L,p,p);
-    
-    write_file_double(&beta0_record, "check_out/check_beta0.txt", 1, iter, p*(p-1)/2);
-    write_file_double(&beta1_record, "check_out/check_beta1.txt", 1, iter, p*(p-1)/2);
-    write_file_int(&b_record, "check_out/check_b.txt", 1, iter, 1);
-    write_file_double(&D_record, "check_out/check_D.txt", 1, iter, p*p);
+    write_file_int(&G, out_dir+"BDgraph_out_G",L,p,p);
+    write_file_double(&p_links, out_dir+"BDgraph_out_p_links",L,p,p);
+    write_file_double(&K, out_dir+"BDgraph_out_K",L,p,p);
+    write_file_double(&K_hat, out_dir+"BDgraph_out_K_hat",L,p,p);
     
 }
