@@ -1034,6 +1034,7 @@ void ggm_DMH_bdmcmc_ma( int iteration, int burn_in, int G[], double g_prior[],
 
         //Update b and D.
         b1 = update_b(b1, G, K, D, dim, L, &ns[0]); // Note that this b1 will not be sent back the main.
+	update_beta(beta0, beta1, G, X, dim, L, ns);
         update_D(D, G, K, b1, dim, L, &ns[0]);
 
 // - - - saving result - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|    
