@@ -1009,7 +1009,7 @@ void ggm_DMH_bdmcmc_ma( int iteration, int burn_in, int G[], double g_prior[],
                     ij = (l*dim + j) * dim + i;
                     //log_ratio_g_prior[ ij ] = log( static_cast<double>( g_prior[ ij ] / ( 1 - g_prior[ ij ] ) ) );
                     double logit = exp(beta0[counter] + beta1[counter]*X[l]);
-                    log_ratio_g_prior[ ij ] = log( logit/ (1-logit) );
+                    log_ratio_g_prior[ ij ] = log( logit/ (1+logit) );
                     counter++;
                 }
         }
@@ -1018,7 +1018,7 @@ void ggm_DMH_bdmcmc_ma( int iteration, int burn_in, int G[], double g_prior[],
         // sampling from K and sigma for double Metropolis-Hastings
         for (int l=0; l<L; l++)
         {
-            rgwish_sigma( &G[l*pxp], &size_node[l*dim], &Ti[l*pxp], &K_dmh[l*pxp], &sigma_dmh[l*pxp], b1, dim, threshold, &sigma_start[l*pxp],
+            rgwish_sigma( &G[l*pxp], &size_node[l*dim], &Ti[0], &K_dmh[l*pxp], &sigma_dmh[l*pxp], b1, dim, threshold, &sigma_start[l*pxp],
                           &inv_C[l*pxp], &beta_star[l*dim], &sigma_i[l*dim], &sigma_start_N_i[l*dim], &sigma_N_i[l*pxp], &N_i[l*dim] );
         }
         //cout << "Calculate rates." << endl;
