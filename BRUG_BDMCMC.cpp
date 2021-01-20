@@ -66,7 +66,7 @@ void update_beta(double beta0[], double beta1[], int G[], double X[], int p, int
             //prior N(0, 1.0)
             //MH N(beta^{t-1}, 0.1)
             beta_old = beta1[lm];
-            normal_distribution<double> N_2(beta_old,0.1); //Can change the sd later.
+            normal_distribution<double> N_2(beta_old,0.01); //Can change the sd later.
             beta_new = N_2(generator);
             //prior
             logr = (pow(beta_old, 2.0) - pow(beta_new, 2.0))/2; // assume \sigma  = 1.0?
@@ -965,7 +965,7 @@ void ggm_DMH_bdmcmc_ma( int iteration, int burn_in, int G[], double g_prior[],
     //cout << "sub_qp is " << sub_qp << endl;
     vector<double> rates( sub_qp );
     vector<double> log_ratio_g_prior( L * pxp );
-    vector<int> b_star(L); for (int l=0; l<L; l++) b_star[l] = ns[l] + b1;
+    vector<int> b_star(L);
 
 // - - - Main loop for birth-death MCMC - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -| 
     //GetRNGstate();
@@ -976,9 +976,11 @@ void ggm_DMH_bdmcmc_ma( int iteration, int burn_in, int G[], double g_prior[],
         if( ( i_mcmc + 1 ) % print_c == 0 ){
             ++print_conter;
             //( print_conter != 20 ) ? Rprintf( "%i%%->", print_conter * 5 ) : Rprintf( " done" );
-            ( print_conter != 20 ) ? printf( "%i%%->", print_conter * 5 ) : printf( " done\n" );
+            ( print_conter != 20 ) ? cout<< print_conter * 5 << "%->" : cout << " done\n" ;
         }
         
+        // Calculate b_star
+        for (int l=0; l<L; l++) b_star[l] = ns[l] + b1;
         //Update Ds after D is updated.
         for (int l=0; l<L; l++)
             for (int i=0; i<dim; i++)
@@ -1008,11 +1010,12 @@ void ggm_DMH_bdmcmc_ma( int iteration, int burn_in, int G[], double g_prior[],
                 {
                     ij = (l*dim + j) * dim + i;
                     //log_ratio_g_prior[ ij ] = log( static_cast<double>( g_prior[ ij ] / ( 1 - g_prior[ ij ] ) ) );
-                    double logit = exp(beta0[counter] + beta1[counter]*X[l]);
-                    log_ratio_g_prior[ ij ] = log( logit/ (1+logit) );
+                    double odds = exp(beta0[counter] + beta1[counter]*X[l]);
+                    log_ratio_g_prior[ ij ] = log( odds/ (1+odds) );
                     counter++;
                 }
         }
+        
 // - - - STEP 1: calculating birth and death rates - - - - - - - - - - - - - - - - - - - - - - - - -|        
         //cout << "Begin rgwish_sigma." << endl;
         // sampling from K and sigma for double Metropolis-Hastings
@@ -1021,9 +1024,11 @@ void ggm_DMH_bdmcmc_ma( int iteration, int burn_in, int G[], double g_prior[],
             rgwish_sigma( &G[l*pxp], &size_node[l*dim], &Ti[0], &K_dmh[l*pxp], &sigma_dmh[l*pxp], b1, dim, threshold, &sigma_start[l*pxp],
                           &inv_C[l*pxp], &beta_star[l*dim], &sigma_i[l*dim], &sigma_start_N_i[l*dim], &sigma_N_i[l*pxp], &N_i[l*dim] );
         }
+        
         //cout << "Calculate rates." << endl;
         rates_bdmcmc_dmh_parallel( &rates[0], &log_ratio_g_prior[0], G, &index_row[0], &index_col[0],
                                    &sub_qp, &Ds[0], D, &sigma[0], K, &sigma_dmh[0], &K_dmh[0], L, dim );
+        
         
         // Selecting an edge based on birth and death rates
         //cout << "Select edge." << endl;
@@ -1034,7 +1039,7 @@ void ggm_DMH_bdmcmc_ma( int iteration, int burn_in, int G[], double g_prior[],
 
         //Update b and D.
         b1 = update_b(b1, G, K, D, dim, L, &ns[0]); // Note that this b1 will not be sent back the main.
-	update_beta(beta0, beta1, G, X, dim, L, ns);
+        update_beta(beta0, beta1, G, X, dim, L, ns);
         update_D(D, G, K, b1, dim, L, &ns[0]);
 
 // - - - saving result - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|    
@@ -1054,7 +1059,7 @@ void ggm_DMH_bdmcmc_ma( int iteration, int burn_in, int G[], double g_prior[],
             sum_weights += weight_C;
         } 
 // - - - End of saving result - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |    
-            
+        
         // Updating G (graph) based on selected edge
         selected_edge_ij    = (selected_edge_l*dim + selected_edge_j) * dim + selected_edge_i;
         G[ selected_edge_ij ] = 1 - G[ selected_edge_ij ];
@@ -1177,7 +1182,7 @@ int main(int argc, char **argv)
     double threshold = .00000001;
     int b = 7;
     int L = 4; // No. of groups
-    unsigned int seed = 123;
+    unsigned int seed = 12345;
     string g_prior_file_name = "demo_data/demo_g_prior.txt";
     string K_file_name = "demo_data/demo_K.txt";
     string ns_file_name = "demo_data/demo_n.txt";
@@ -1291,9 +1296,10 @@ int main(int argc, char **argv)
                         &D[0], L, print, &beta0[0], &beta1[0], &X[0]);
     
     // Write files.
-    write_file_int(&G, out_dir+"BDgraph_out_G",L,p,p);
-    write_file_double(&p_links, out_dir+"BDgraph_out_p_links",L,p,p);
-    write_file_double(&K, out_dir+"BDgraph_out_K",L,p,p);
-    write_file_double(&K_hat, out_dir+"BDgraph_out_K_hat",L,p,p);
+    write_file_int(&G, out_dir+"BRUG_out_G.txt",L,p,p);
+    write_file_double(&p_links, out_dir+"BRUG_out_p_links.txt",L,p,p);
+    write_file_double(&K, out_dir+"BRUG_out_K.txt",L,p,p);
+    write_file_double(&K_hat, out_dir+"BRUG_out_K_hat.txt",L,p,p);
     
+    return(0);
 }
