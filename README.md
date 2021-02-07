@@ -3,23 +3,38 @@
 ## Overview
 This pure C++ program is written to execute the algorithm in Bayesian Graphical Regression with Birth-Death Markov Process (BGR-BDMCMC) by Yuen et al.
 It is constructed and build upon the Gausian Graphical Model Double Metropolis Hastings Birth-Death Markov Process program(ggm_DMH_bdmcmc_ma).
+
+From 7th Feb 2021, an updated version (BRUG_BDMCMC_change_means.cpp) which allows users to specify a non-zero mean for Y is added, it will require an additional input Y_bar which will be introduced later.
+
 ## Installation
 BRUG_BDMCMC does not require any installation. It only requires the compiler g++ and the dependecies BLAS and LAPACK for C to be available.
 ## Compilation and arguments
 First, compile the code:
 ```
 g++ BRUG_BDMCMC.cpp -llapack -lblas -std=c++11 -o BRUG_BDMCMC
+# For the varying means version #
+# g++ BRUG_BDMCMC_change_means.cpp -llapack -lblas -std=c++11 -o BRUG_BDMCMC_change_means
 ```
 Next, run the compiled code:
 ```
-# For some devices, it may be necessary to update permissions.
+# (Optional) For some devices, it may be necessary to update permissions.
 chmod 777 ./BRUG_BDMCMC
+# For the varying means version #
+# chmod 777 ./BRUG_BDMCMC_change_means
+
 # Create directory to store outputs.
 mkdir demo_out
+# For the varying means version #
+# mkdir demo_out_change_means
+
 # Run the program
 ./BRUG_BDMCMC -i 5000 -b 2500 -p 5 -L 4 -n demo_data/demo_n.txt -B 7 -g demo_data/demo_g_prior.txt -K demo_data/demo_K.txt \
 -S demo_data/demo_S.txt -D demo_data/demo_D.txt -z demo_data/demo_beta0.txt -o demo_data/demo_beta1.txt \
 -X demo_data/demo_X.txt -e .00000001 -s 123 -O demo_out/
+# For the varying means version #
+# ./BRUG_BDMCMC_change_means -i 5000 -b 2500 -p 5 -L 4 -n demo_data/demo_n.txt -B 7 -g demo_data/demo_g_prior.txt -K demo_data/demo_K.txt \
+# -S demo_data/demo_S.txt -D demo_data/demo_D.txt -z demo_data/demo_beta0.txt -o demo_data/demo_beta1.txt \
+# -X demo_data/demo_X.txt -Y demo_data/demo_Y_bar.txt -e .00000001 -s 123 -O demo_out_change_means/
 ```
 The meaning of the arguments are as follows:
 ```
@@ -39,8 +54,13 @@ The meaning of the arguments are as follows:
 -e  Double, the value of the threshold.
 -s  Integer, the value of the seed.
 -O  String, the path to output. Please end it with a slash ("/").
+# The following arguemtn Y_bar is only used by the varying means version.
+-Y String, the path to the file of Y_bar. Y_bar is a L(row) x p(col) matrix of the by-group means.
 ```
-Please note that files can be tab or space separated, but NOT comma.
+Please note that:
+- Files can be tab or space separated, but NOT comma.
+- For non-symmetric arrays, the orientation of the files are important.
+- Please kindly check the demo files for better information, or email me if there are any questions.
 ## Demonstration
 Please see the ./demo folder for the demo data
 ## Testing
