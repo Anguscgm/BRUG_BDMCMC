@@ -4,7 +4,7 @@
 This pure C++ program is written to execute the algorithm in Bayesian Graphical Regression with Birth-Death Markov Process (BGR-BDMCMC) by Yuen et al.
 It is constructed and build upon the Gausian Graphical Model Double Metropolis Hastings Birth-Death Markov Process program(ggm_DMH_bdmcmc_ma).
 
-From 7th Feb 2021, an updated version (BRUG_BDMCMC_change_means.cpp) which allows users to specify a non-zero mean for Y is added, it will require an additional input Y_bar which will be introduced later.
+BRUG_BDMCMC.cpp assumes the means are zeros for the Gaussian graphical models, whereas BRUG_BCMCMC_change_means.cpp further assumes a linear model for the means of Ys with respect to the covariates Xs.
 
 ## Installation
 BRUG_BDMCMC does not require any installation. It only requires the compiler g++ and the dependecies BLAS and LAPACK for C to be available.
